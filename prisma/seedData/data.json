@@ -1,0 +1,29 @@
+{
+  "provinces": [{
+    "name": "Umujyi wa Kigali",
+    "districts": [{
+      "name": "Nyarugenge",
+      "sectors": [{
+        "name": "Gitega",
+        "cells": [{
+          "name": "Akabahizi",
+          "villages": [{
+            "name": "Gihanga"
+          }, {
+            "name": "Iterambere"
+          }, {
+            "name": "Izuba"
+          }, {
+            "name": "Nyaburanga"
+          }, {
+            "name": "Nyenyeri"
+          }, {
+            "name": "Ubukorikori"
+          }, {
+            "name": "Ubumwe"
+          }]
+        }]
+      }]
+    }]
+  }]
+}

@@ -1,0 +1,314 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String        @id @default(uuid())
+  email          String        @unique
+  phone          String        @unique
+  name           String
+  password       String
+  roles          UserRole[]
+  properties     Property[]    @relation("OwnedProperties")
+  transactions   Transaction[]
+  userId         String?       @unique
+  username       String?       @unique
+  gender         String?
+  dob            DateTime?
+  address        String?       // e.g., "Kigali, Gasabo"
+  country        String?       // default: "Rwanda"
+  province       String?
+  district       String?
+  nationalId     String?       @unique // Optional: for verification
+  profileImg     String?
+  coverImg       String?
+  facebookId     String?       @unique
+  whatsapp       String?
+  isVerified     Boolean       @default(false)
+  isActive       Boolean       @default(true)
+  lastLogin      DateTime?
+  language       Language?
+  userSetting    UserSetting?
+  sharesSent     Share[]       @relation("SenderRelation")
+  sharesReceived Share[]       @relation("RecipientRelation")
+  blogs          Blog[]
+  favorites      Favorite[]
+  notifications  Notification[]
+  testimonials   Testimonial[]
+  reservations   Reservation[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+enum Language {
+  en
+  fr
+  sw
+  rw
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  type      RoleType
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum RoleType {
+  OWNER
+  AGENT
+  CLIENT
+}
+
+model UserSetting {
+  id               String   @default(uuid()) @id
+  notificationsOn  Boolean
+  smsEnabled       Boolean
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String  @unique
+}
+
+model Property {
+  id            String      @id @default(uuid())
+  title         String
+  description   String
+  type          PropertyType
+  saleType      SaleType
+  price         Float
+  location      Location?   @relation(fields: [locationId], references: [id])
+  locationId    String?     @unique
+  isActive      Boolean     @default(true)
+  ownerId       String
+  owner         User        @relation("OwnedProperties", fields: [ownerId], references: [id])
+  rentals       RentalPeriod[]
+  transactions  Transaction[]
+  shares        Share[]     @relation("PropertyRelation")
+  reservations  Reservation[]
+  blogs         Blog[]
+  favorites     Favorite[]
+  categoryId    String?
+  category      Category?   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  placeId       String?
+  place         Place?      @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  latitude  Float
+  longitude Float
+  address   String?   // optional: human‑readable address
+  property  Property?
+}
+
+enum PropertyType {
+  HOUSE
+  LAND
+}
+
+enum SaleType {
+  SALE
+  RENT
+  BOTH
+}
+
+model RentalPeriod {
+  id         String   @id @default(uuid())
+  period     RentalType
+  price      Float
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+}
+
+enum RentalType {
+  DAILY
+  MONTHLY
+  YEARLY
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  propertyId  String
+  amount      Float
+  method      PaymentMethod
+  timestamp   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  property    Property @relation(fields: [propertyId], references: [id])
+}
+
+enum PaymentMethod {
+  MOMO
+}
+
+model Share {
+  id            String      @id @default(uuid())
+  status        String      @default("PENDING") // e.g., 'PENDING', 'SOLD', 'BOOKED', 'REJECTED'
+  propertyId    String
+  property      Property    @relation("PropertyRelation", fields: [propertyId], references: [id], onDelete: Cascade)
+  senderId      String
+  sender        User        @relation("SenderRelation", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId   String?
+  recipient     User?       @relation("RecipientRelation", fields: [recipientId], references: [id], onDelete: Cascade)
+  parentShareId String?
+  parentShare   Share?      @relation("ParentShare", fields: [parentShareId], references: [id], onDelete: Cascade)
+  children      Share[]     @relation("ParentShare")
+  createdAt     DateTime    @default(now())
+  reservations  Reservation[]
+}
+
+model Reservation {
+  id           String      @id @default(uuid())
+  user         User        @relation(fields: [userId], references: [id])
+  userId       String
+  property     Property    @relation(fields: [propertyId], references: [id])
+  propertyId   String
+  share        Share?      @relation(fields: [shareId], references: [id])
+  shareId      String?     // optional: if the user came via a non shared link
+  status       String      // pending, confirmed, expired, cancelled
+  reservedAt   DateTime
+  expiresAt    DateTime
+  createdAt    DateTime    @default(now())
+}
+
+model Blog {
+  id          String      @id @default(uuid())
+  title       String?
+  content     String?
+  authorId    String
+  categoryId  String?
+  propertyId  String?
+  featuredImg String?
+  slug        String?     @unique
+  author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  property    Property?   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Category {
+  id         String      @id @default(uuid())
+  name       String      @unique
+  details    String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  properties Property[]
+  blogs      Blog[]
+}
+
+model Place {
+  id          String      @id @default(uuid())
+  name        String
+  featuredImg String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  sector      Sector      @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  sectorId    String
+  properties  Property[]
+}
+
+model Province {
+  id         String      @id @default(uuid())
+  name       String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  districts  District[]
+}
+
+model District {
+  id         String      @id @default(uuid())
+  name       String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  province   Province    @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  provinceId String
+  sectors    Sector[]
+}
+
+model Sector {
+  id         String      @id @default(uuid())
+  name       String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  district   District    @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  districtId String
+  places     Place[]
+  cells      Cell[]
+}
+
+model Cell {
+  id         String      @id @default(uuid())
+  name       String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  sector     Sector      @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  sectorId   String
+  villages   Village[]
+}
+
+model Village {
+  id         String      @id @default(uuid())
+  name       String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  cell       Cell       @relation(fields: [cellId], references: [id], onDelete: Cascade)
+  cellId     String
+}
+
+model Favorite {
+  id         String      @id @default(uuid())
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  user       User        @relation(fields: [userId], references: [id])
+  userId     String
+  property   Property    @relation(fields: [propertyId], references: [id])
+  propertyId String
+
+  @@unique([userId, propertyId])
+}
+
+model Notification {
+  id                String      @id @default(uuid())
+  title             String
+  message           String
+  isRead            Boolean     @default(false)
+  type              String      // e.g., 'PROPERTY_LIKED', 'NEW_MESSAGE', etc.
+  isSent            Boolean     @default(false)
+  notificationData  Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  user              User        @relation(fields: [userId], references: [id])
+  userId            String
+}
+
+model Faq {
+  id         String      @id @default(uuid())
+  question   String
+  answer     String?
+  subject    String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Testimonial {
+  id         String      @id @default(uuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occupation String
+  content    String
+  starRating Int
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
