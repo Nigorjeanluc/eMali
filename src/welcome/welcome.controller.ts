@@ -1,9 +1,16 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Res } from '@nestjs/common';
+import { Response } from 'express';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-@Controller('welcome')
+@Controller()
 export class WelcomeController {
   @Get()
-  welcome(): string {
-    return 'Welcome to the eMali Estates API!';
+  welcome(@Res() res: Response) {
+    const html = readFileSync(
+      join(process.cwd(), 'public', 'index.html'),
+      'utf8',
+    );
+    res.type('html').send(html);
   }
 }
