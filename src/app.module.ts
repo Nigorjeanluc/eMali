@@ -11,6 +11,5 @@ import { ConfigModule } from '@nestjs/config';
     TranslationModule,
   ],
   controllers: [WelcomeController],
-  // providers: [AppService],
 })
 export class AppModule {}
