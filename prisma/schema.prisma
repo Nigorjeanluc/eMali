@@ -17,9 +17,12 @@ model User {
   phone          String        @unique
   name           String
   password       String
-  roles          UserRole[]
+  role           RoleType       @default(CLIENT)
   properties     Property[]    @relation("OwnedProperties")
   transactions   Transaction[]
+  identification   Identification? @relation
+  location       Location?     @relation(fields: [locationId], references: [id])
+  locationId     String?       @unique
   userId         String?       @unique
   username       String?       @unique
   gender         String?
@@ -28,7 +31,6 @@ model User {
   country        String?       // default: "Rwanda"
   province       String?
   district       String?
-  nationalId     String?       @unique // Optional: for verification
   profileImg     String?
   coverImg       String?
   facebookId     String?       @unique
@@ -50,19 +52,12 @@ model User {
 }
 
 enum Language {
-  en
-  fr
-  sw
-  rw
+  EN
+  FR
+  SW
+  RW
 }
 
-model UserRole {
-  id        String   @id @default(uuid())
-  type      RoleType
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-}
 
 enum RoleType {
   OWNER
@@ -78,6 +73,37 @@ model UserSetting {
   userId           String  @unique
 }
 
+model Identification {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  documents   String[] @default([])
+  verified    Boolean  @default(false)
+  type        IdentificationType @default(NATIONAL_ID)
+  verificationDate DateTime?
+  verificationStatus VerificationStatus @default(PENDING)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passport    String?  @unique
+  drivingLicense String? @unique
+  nationalId  String?  @unique
+  countryOfIssue String?
+  issueDate   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum IdentificationType {
+  PASSPORT
+  DRIVING_LICENSE
+  NATIONAL_ID
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+
 model Property {
   id            String      @id @default(uuid())
   title         String
@@ -88,6 +114,28 @@ model Property {
   location      Location?   @relation(fields: [locationId], references: [id])
   locationId    String?     @unique
   isActive      Boolean     @default(true)
+  isFurnished  Boolean     @default(false)
+  furnishingType FurnishingType @default(UNFURNISHED)
+  bedrooms      Int         @default(0)
+  bathrooms     Int         @default(0)
+  area          Float       // in square meters
+  featuredImg   String?     // URL to the main image
+  additionalImgs String[]   @default([]) // URLs to additional images
+  videoUrl      String?     // URL to a video tour
+  floorPlanUrl  String?     // URL to a floor plan
+  amenities     String[]    @default([]) // e.g., ["Pool", "Gym", "Parking"]
+  utilities     String[]    @default([]) // e.g., ["Water", "Electricity", "Internet"]
+  isVerified    Boolean     @default(false)
+  isFeatured    Boolean     @default(false)
+  isSold        Boolean     @default(false)
+  isRented      Boolean     @default(false)
+  isShared      Boolean     @default(false)
+  isReserved    Boolean     @default(false)
+  isArchived    Boolean     @default(false)
+  archivedAt    DateTime?   // timestamp when the property was archived
+  archivedReason String?    // reason for archiving the property
+  archivedBy    String?     // userId of the person who archived the property
+  
   ownerId       String
   owner         User        @relation("OwnedProperties", fields: [ownerId], references: [id])
   rentals       RentalPeriod[]
@@ -104,12 +152,19 @@ model Property {
   updatedAt     DateTime    @updatedAt
 }
 
+enum FurnishingType {
+  FULLY_FURNISHED
+  SEMI_FURNISHED
+  UNFURNISHED
+}
+
 model Location {
   id        String   @id @default(uuid())
   latitude  Float
   longitude Float
   address   String?   // optional: human‑readable address
   property  Property?
+  user     User?
 }
 
 enum PropertyType {
