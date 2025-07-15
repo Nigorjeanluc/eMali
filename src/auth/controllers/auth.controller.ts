@@ -1,8 +1,33 @@
-import { Body, Controller, Post, Req, Res, HttpStatus } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  HttpStatus,
+  UseGuards,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
-import { AuthResponseDto, CreateUserDto, LoginDto } from '../dtos/auth.dto';
+import {
+  AuthResponseDto,
+  CreateUserDto,
+  LoginDto,
+  VerifyOtpDto,
+} from '../dtos/auth.dto';
 import { Request, Response } from 'express';
+import { JWTAuthGuard } from '../../guards/jwt/jwt.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -56,5 +81,76 @@ export class AuthController {
         user: result.user,
       },
     });
+  }
+
+  @Post('verify-otp')
+  @UseGuards(JWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Verify the one‑time password (OTP)',
+    description:
+      'The identifier (e‑mail) is taken from the access token; the body only needs the OTP string.',
+  })
+  @ApiBody({ type: VerifyOtpDto })
+  @ApiOkResponse({
+    description: 'OTP verified successfully',
+    schema: { example: { success: true } },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Access token invalid or OTP does not match / is expired',
+    type: UnauthorizedException,
+  })
+  @ApiBadRequestResponse({
+    description: 'Malformed request body (validation failed)',
+    type: BadRequestException,
+  })
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
+    @Req() req: Request,
+  ): Promise<{ success: boolean }> {
+    // identifier (e‑mail) comes from decoded JWT
+    const { email } = req.user as { email: string };
+
+    await this.authService.verifyOtp(email, dto.otp);
+
+    return { success: true };
+  }
+
+  @Post('refresh-otp')
+  @UseGuards(JWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Resend OTP to user email',
+    description:
+      'Sends a new OTP to the e-mail address extracted from the accessToken.',
+  })
+  @ApiOkResponse({
+    description: 'OTP sent successfully',
+    schema: { example: { success: true } },
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or expired access token' })
+  @ApiBadRequestResponse({ description: 'Email not found or OTP failed' })
+  async refreshOtp(@Req() req: Request): Promise<{ success: boolean }> {
+    const { email } = req.user as { email: string };
+    await this.authService.refreshOtp(email);
+    return { success: true };
+  }
+
+  @Post('logout')
+  @UseGuards(JWTAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Log the current user out' })
+  @ApiOkResponse({
+    description: 'Token invalidated; client should delete local copy',
+    schema: { example: { success: true } },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid / expired JWT supplied',
+    type: UnauthorizedException,
+  })
+  async logout(@Req() req: Request): Promise<{ success: boolean }> {
+    const rawJwt = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    await this.authService.logout(rawJwt);
+    return { success: true };
   }
 }

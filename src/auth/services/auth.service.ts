@@ -150,6 +150,33 @@ export class AuthService {
     return true;
   }
 
+  /* -------------------------  RESEND OTP  --------------------------- */
+  async refreshOtp(email: string): Promise<boolean> {
+    const user = await this.usersService.findByLoginIdentifier(email);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const isEmailSent = await this.otpService.generateAndStoreOtp(
+      email,
+      user.name,
+    );
+
+    if (!isEmailSent) {
+      throw new BadRequestException('Failed to send OTP. Try again later.');
+    }
+
+    return true;
+  }
+
+  /* -------------------------  LOGOUT  --------------------------- */
+  /** Add access‑token to a server‑side blacklist (or similar). */
+  async logout(rawJwt: string): Promise<boolean> {
+    // TODO: blacklist in Redis or increment tokenVersion in DB
+    console.log(`Logging out token: ${rawJwt.slice(0, 10)}…`);
+    return true;
+  }
+
   /* -------------------------  HELPERS  --------------------------- */
   private async ensureUnique(email: string, phone: string, username?: string) {
     const exists = await this.usersService.findFirst({

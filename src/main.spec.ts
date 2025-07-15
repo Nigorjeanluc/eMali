@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { ApiBadRequestResponse, ApiOkResponse } from '@nestjs/swagger';
 
 /* ─────────── mocks ─────────── */
 jest.mock('@nestjs/core', () => ({ NestFactory: { create: jest.fn() } }));
@@ -36,6 +37,10 @@ jest.mock('@nestjs/swagger', () => {
     ApiTags: noop,
     ApiBody: noop,
     ApiResponse: noop,
+    ApiBearerAuth: noop,
+    ApiOkResponse: noop,
+    ApiBadRequestResponse: noop,
+    ApiUnauthorizedResponse: noop,
     /* swagger runtime helpers */
     SwaggerModule: {
       createDocument: jest.fn(),
