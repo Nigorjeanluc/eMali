@@ -175,3 +175,56 @@ describe('AuthService', () => {
     });
   });
 });
+
+describe('AuthService - refreshOtp', () => {
+  let service: AuthService;
+  let otpServiceMock: { generateAndStoreOtp: jest.Mock };
+  let usersServiceMock: { findByLoginIdentifier: jest.Mock };
+
+  beforeEach(() => {
+    otpServiceMock = {
+      generateAndStoreOtp: jest.fn(),
+    };
+
+    usersServiceMock = {
+      findByLoginIdentifier: jest.fn(),
+    };
+
+    service = new AuthService(
+      usersServiceMock as any,
+      {} as any, // jwt service (not used in this test)
+      otpServiceMock as any,
+    );
+  });
+
+  it('should return true when OTP is refreshed', async () => {
+    usersServiceMock.findByLoginIdentifier.mockResolvedValue({
+      email: 'user@example.com',
+      name: 'User',
+    });
+    otpServiceMock.generateAndStoreOtp.mockResolvedValue(true);
+
+    await expect(service.refreshOtp('user@example.com')).resolves.toBe(true);
+
+    expect(otpServiceMock.generateAndStoreOtp).toHaveBeenCalledWith(
+      'user@example.com',
+      'User',
+    );
+  });
+
+  it('should throw BadRequestException when user is not found', async () => {
+    usersServiceMock.findByLoginIdentifier.mockResolvedValue(null);
+
+    await expect(service.refreshOtp('user@example.com')).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+});
+
+describe('AuthService – logout', () => {
+  it('simply resolves true for now', async () => {
+    const service = new AuthService({} as any, {} as any, {} as any);
+
+    await expect(service.logout('abc.def.ghi')).resolves.toBe(true);
+  });
+});

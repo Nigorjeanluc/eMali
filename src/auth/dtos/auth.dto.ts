@@ -12,6 +12,7 @@ import {
   IsStrongPassword,
   IsEnum,
   IsISO8601,
+  Length,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Language, RoleType } from '@prisma/client';
@@ -297,4 +298,17 @@ export class AuthResponseDto {
 
   @ApiProperty({ type: () => AuthResponseDataDto })
   data!: AuthResponseDataDto;
+}
+
+export class VerifyOtpDto {
+  @ApiProperty({
+    description: 'One‑time password sent to the user (e.g. via e‑mail)',
+    example: '123456',
+    minLength: 4,
+    maxLength: 6,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @Length(4, 6)
+  readonly otp: string;
 }
