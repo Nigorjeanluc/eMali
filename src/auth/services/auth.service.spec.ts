@@ -133,30 +133,37 @@ describe('AuthService', () => {
   describe('AuthService - verifyOtp', () => {
     let service: AuthService;
     let otpServiceMock: { verifyOtp: jest.Mock };
+    let usersServiceMock: { update: jest.Mock };
 
     beforeEach(() => {
       otpServiceMock = {
         verifyOtp: jest.fn(),
       };
 
+      usersServiceMock = {
+        update: jest.fn(),
+      };
+
       service = new AuthService(
-        // Pass mocks for usersService and jwt if needed; for this test they can be empty or mocked
-        {} as any,
-        {} as any,
+        usersServiceMock as any,
+        {} as any, // jwt service (not used in this test)
         otpServiceMock as any,
       );
     });
 
     it('should return true when OTP is valid', async () => {
       otpServiceMock.verifyOtp.mockResolvedValue(true);
+      usersServiceMock.update.mockResolvedValue(true); // mock the DB update
 
       await expect(
         service.verifyOtp('user@example.com', '123456'),
       ).resolves.toBe(true);
+
       expect(otpServiceMock.verifyOtp).toHaveBeenCalledWith(
         'user@example.com',
         '123456',
       );
+      expect(usersServiceMock.update).toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException when OTP is invalid', async () => {
