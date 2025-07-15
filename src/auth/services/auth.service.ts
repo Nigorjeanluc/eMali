@@ -132,6 +132,24 @@ export class AuthService {
     };
   }
 
+  /* -------------------------  OTP VERIFICATION  ------------------------- */
+  async verifyOtp(identifier: string, otp: string): Promise<boolean> {
+    const isValid = await this.otpService.verifyOtp(identifier, otp);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid or expired OTP');
+    }
+
+    if (isValid) {
+      await this.usersService.update({
+        where: { email: identifier },
+        data: { isVerified: true },
+      });
+    }
+
+    return true;
+  }
+
   /* -------------------------  HELPERS  --------------------------- */
   private async ensureUnique(email: string, phone: string, username?: string) {
     const exists = await this.usersService.findFirst({
