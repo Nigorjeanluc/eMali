@@ -9,6 +9,7 @@ describe('AppModule', () => {
 
   beforeAll(async () => {
     process.env.FALLBACK_LANGUAGE = 'en'; // ensure required env var exists
+    process.env.JWT_SECRET = 'test-secret';
 
     module = await Test.createTestingModule({
       imports: [AppModule],
