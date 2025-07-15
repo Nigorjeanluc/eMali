@@ -1,22 +1,16 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-require-imports */
-// main.spec.ts
 import { join } from 'path';
 import { AppModule } from './app.module';
 
-jest.mock('@nestjs/core', () => ({
-  NestFactory: {
-    create: jest.fn(),
-  },
-}));
+/* ─────────── mocks ─────────── */
+jest.mock('@nestjs/core', () => ({ NestFactory: { create: jest.fn() } }));
 
-jest.mock('@nestjs/swagger', () => ({
-  SwaggerModule: {
-    createDocument: jest.fn(),
-    setup: jest.fn(),
-  },
-}));
+const basicAuthMock = jest.fn();
+jest.mock('express-basic-auth', () => basicAuthMock);
 
 jest.mock('@nestjs/swagger', () => {
+  const noop = () => () => {};
   class DocumentBuilder {
     setTitle() {
       return this;
@@ -34,52 +28,67 @@ jest.mock('@nestjs/swagger', () => {
       return {};
     }
   }
-
   return {
+    /* no‑op decorators */
+    ApiProperty: noop,
+    ApiPropertyOptional: noop,
+    ApiOperation: noop,
+    ApiTags: noop,
+    ApiBody: noop,
+    ApiResponse: noop,
+    /* swagger runtime helpers */
     SwaggerModule: {
       createDocument: jest.fn(),
       setup: jest.fn(),
     },
-    DocumentBuilder, // <-- export the class here
+    DocumentBuilder,
   };
 });
 
-describe('bootstrap', () => {
+/* ─────────── tests ─────────── */
+describe('bootstrap()', () => {
   let appMock: any;
   let NestFactory: any;
   let SwaggerModule: any;
 
   beforeEach(() => {
-    // Import mocks inside to get updated jest mocks
+    jest.resetModules();
+
     NestFactory = require('@nestjs/core').NestFactory;
     SwaggerModule = require('@nestjs/swagger').SwaggerModule;
 
     appMock = {
       setGlobalPrefix: jest.fn(),
+      useGlobalPipes: jest.fn(),
       useStaticAssets: jest.fn(),
-      setBaseViewsDir: jest.fn(),
+      use: jest.fn(),
       listen: jest.fn().mockResolvedValue(undefined),
     };
 
     NestFactory.create.mockResolvedValue(appMock);
     SwaggerModule.createDocument.mockReturnValue({});
-    SwaggerModule.setup.mockImplementation(() => {});
+    basicAuthMock.mockReset();
   });
 
-  it('should bootstrap the app with proper setup', async () => {
-    // Import bootstrap dynamically so mocks apply
-    const { bootstrap } = await import('./main');
+  afterEach(() => {
+    delete process.env.NODE_ENV;
+    delete process.env.SWAGGER_PWD;
+  });
 
-    await bootstrap();
+  it('bootstraps correctly when NODE_ENV is not production', async () => {
+    process.env.NODE_ENV = 'test';
 
-    expect(NestFactory.create).toHaveBeenCalledWith(AppModule);
+    const main = await import('./main');
+    NestFactory.create.mockClear();
+    await main.bootstrap();
+
+    expect(NestFactory.create).toHaveBeenCalledTimes(1);
+    /* Compare by class name (robust across module instances) */
+    expect(NestFactory.create.mock.calls[0][0].name).toBe('AppModule');
 
     expect(appMock.setGlobalPrefix).toHaveBeenCalledWith('api/v1');
     expect(appMock.useStaticAssets).toHaveBeenCalledWith(
       join(process.cwd(), 'public'),
-    );
-    expect(appMock.setBaseViewsDir).toHaveBeenCalledWith(
-      join(process.cwd(), 'api/v1/public'),
     );
     expect(SwaggerModule.createDocument).toHaveBeenCalledWith(
       appMock,
@@ -87,5 +96,25 @@ describe('bootstrap', () => {
     );
     expect(SwaggerModule.setup).toHaveBeenCalledWith('api-docs', appMock, {});
     expect(appMock.listen).toHaveBeenCalledWith(3000);
+    expect(appMock.use).not.toHaveBeenCalled();
+  });
+
+  it('adds basicAuth middleware when NODE_ENV=production', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.SWAGGER_PWD = 'admin';
+    basicAuthMock.mockReturnValue('basicAuthMiddleware');
+
+    const main = await import('./main');
+    NestFactory.create.mockClear();
+    await main.bootstrap();
+
+    expect(basicAuthMock).toHaveBeenCalledWith({
+      users: { admin: 'admin' },
+      challenge: true,
+    });
+    expect(appMock.use).toHaveBeenCalledWith(
+      ['/api-docs', '/api-docs-json'],
+      'basicAuthMiddleware',
+    );
   });
 });
