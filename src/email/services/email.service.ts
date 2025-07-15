@@ -101,16 +101,6 @@ export class EmailService {
           'Email service is currently unavailable',
           HttpStatus.SERVICE_UNAVAILABLE,
         );
-      } else if (error.code === 'EENVMISSING') {
-        throw new HttpException(
-          'Email service misconfigured',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      } else if (error.code === 'EINVALIDEMAIL') {
-        throw new HttpException(
-          'Invalid email address provided',
-          HttpStatus.BAD_REQUEST,
-        );
       } else {
         throw new HttpException(
           'Failed to send verification email',

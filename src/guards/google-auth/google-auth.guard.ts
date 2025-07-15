@@ -13,15 +13,15 @@ export class GoogleAuthGuard extends AuthGuard('jwt') {
 
   async canActivate(context: any) {
     const request = context.switchToHttp().getRequest();
-    const credential = request.body.credential;
+    const accessToken = request.body.accessToken;
 
-    if (!credential) {
-      throw new UnauthorizedException('No credentials provided');
+    if (!accessToken) {
+      throw new UnauthorizedException('No accessToken provided');
     }
 
     try {
       const ticket = await this.googleClient.verifyIdToken({
-        idToken: credential,
+        idToken: accessToken,
         audience: process.env.GOOGLE_CLIENT_ID,
       });
 
@@ -34,8 +34,8 @@ export class GoogleAuthGuard extends AuthGuard('jwt') {
 
       return true;
     } catch (error) {
-      console.log(error);
-      throw new UnauthorizedException('Invalid credentials');
+      // console.log(error);
+      throw new UnauthorizedException(`Invalid credentials: ${error.message}`);
     }
   }
 }
