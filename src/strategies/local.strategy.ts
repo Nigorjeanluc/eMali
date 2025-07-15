@@ -9,9 +9,13 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     super();
   }
 
-  validate(username: string, password: string) {
+  async validate(identifier: string, password: string) {
     console.log('Inside LocalStrategy');
-    const user = this.authService.login(username, password);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { accessToken, user } = await this.authService.login(
+      identifier,
+      password,
+    );
     if (!user) throw new UnauthorizedException();
     return user;
   }

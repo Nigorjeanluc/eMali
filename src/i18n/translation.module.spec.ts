@@ -14,7 +14,7 @@ describe('TranslationModule', () => {
           isGlobal: true,
           load: [
             () => ({
-              FALLBACK_LANGUAGE: 'en', // 👈 mocked env config
+              FALLBACK_LANGUAGE: 'en',
             }),
           ],
         }),

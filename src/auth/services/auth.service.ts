@@ -157,8 +157,6 @@ export class AuthService {
       isActive: user.isActive,
       role: user.role,
     };
-    return {
-      accessToken: this.jwt.sign(payload, { expiresIn: '12h' }),
-    };
+    return this.jwt.sign(payload, { expiresIn: '12h' });
   }
 }

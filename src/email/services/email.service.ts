@@ -90,6 +90,11 @@ export class EmailService {
         email,
       });
 
+      // ⛑ Rethrow known NestJS exceptions (e.g. BadRequestException)
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       // Determine the appropriate error response
       if (error.code === 'ECONNREFUSED') {
         throw new HttpException(

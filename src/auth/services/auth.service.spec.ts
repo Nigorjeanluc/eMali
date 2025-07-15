@@ -86,7 +86,7 @@ describe('AuthService', () => {
       expect(mockJwtService.sign).toHaveBeenCalled();
 
       expect(result).toEqual({
-        accessToken: { accessToken: mockToken }, // ← nested token object
+        accessToken: mockToken, // ← nested token object
         user: expect.objectContaining({
           id: mockUser.id,
           email: mockUser.email,
@@ -113,7 +113,7 @@ describe('AuthService', () => {
       const result = await service.login(mockUser.email, 'Password123');
 
       expect(result).toEqual({
-        accessToken: { accessToken: mockToken }, // ← nested token object
+        accessToken: mockToken, // ← nested token object
         user: expect.objectContaining({
           id: mockUser.id,
           email: mockUser.email,
